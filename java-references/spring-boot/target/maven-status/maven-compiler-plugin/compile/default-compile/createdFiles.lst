@@ -1,0 +1,16 @@
+org/leo/boot/data/repository/RoleRepository.class
+org/leo/boot/data/model/Item.class
+org/leo/boot/configuration/WebMvcConfig.class
+org/leo/boot/examples/SpringBootMvcExample.class
+org/leo/boot/rest/api/ItemController.class
+org/leo/boot/data/repository/ItemRepositoryImpl.class
+org/leo/boot/data/repository/ItemRepository.class
+org/leo/boot/mvc/controller/LoginController.class
+org/leo/boot/examples/SpringBootRestExample.class
+org/leo/boot/data/service/UserService.class
+org/leo/boot/configuration/SecurityConfiguration.class
+org/leo/boot/data/repository/UserRepository.class
+org/leo/boot/data/service/UserServiceImpl.class
+org/leo/boot/data/model/User.class
+org/leo/boot/data/model/Role.class
+org/leo/boot/data/repository/ItemRepositoryCustom.class
