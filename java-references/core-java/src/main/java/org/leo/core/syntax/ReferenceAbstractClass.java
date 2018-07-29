@@ -10,7 +10,7 @@ package org.leo.core.syntax;
  * also a class can only extend one abstract class but can implements multiple interfaces
  *
  */
-public abstract class AbstractReferenceClass {
+public abstract class ReferenceAbstractClass {
   
   /**
    * An abstract class cannot be implemented

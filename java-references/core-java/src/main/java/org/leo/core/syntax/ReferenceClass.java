@@ -25,7 +25,7 @@ import java.util.List;
  * a java class can extend only one class (abstract or concrete) and multiple interfaces
  */
 @SuppressWarnings("unused")
-public final class ReferenceClass extends AbstractReferenceClass {
+public final class ReferenceClass extends ReferenceAbstractClass {
   
   // in a java program an expression is anything that evaluates to a single value, whilst a statement is an execution
   // unit
