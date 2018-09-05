@@ -522,7 +522,7 @@ public final class ReferenceClass extends ReferenceAbstractClass {
     //int a = null;                                 // this will not compile, primitive types can't be null
     Integer aa = null;
     @SuppressWarnings("null")
-    int aaa = aa;                                   // this will compile but will throw NullPointerException at runtime
+    //int aaa = aa;                                   // this will compile but will throw NullPointerException at runtime
     ReferenceClass nullSyntax;                      // like 0 is the default for integers, false for booleans, null is the default value for any object
     System.out.println(null instanceof Integer);    // this is false
     Integer i = null;
@@ -600,7 +600,6 @@ public final class ReferenceClass extends ReferenceAbstractClass {
     System.out.println(10 % 3);               // 1 (modulo)
 
     // shift operators
-
     System.out.println(10 << 2);    // moves all bits to left (2 times) equivalent to 10 * 2^2 and result is 40
     System.out.println(10 >> 5);    // moves all bits to right (5 times) equivalent to 10 / 2^5
     System.out.println(-10 >>> 5);  // same as >> for positive numbers  but changes parity bit to 0 for a negative numbers
@@ -610,13 +609,14 @@ public final class ReferenceClass extends ReferenceAbstractClass {
     System.out.println(10 > 4 && 3 < 4);    // true
     System.out.println(2 > 1 || 1 > 2);     // true
 
-    // bitwise operators &, |
+    // bitwise operators & | ^
     // for boolean operators bitwise will have the same result as logical ones with
     // the plus of executing second check if first OR operand is true or first AND operator is false (increments for example ...)
+    // Also on integer types, bitwise operators will perform the logical operation on each individual bit
     // on non boolean it will not return a boolean and will perform operation on bits
-    System.out.println(10 < 13 & (++x) > 2);   //true and x is incremented
-    System.out.println(9 & 7);    // 1
-    System.out.println(5 ^ 6);    // 3 , XOR operation bitwise : OR and not both
+    System.out.println(10 < 13 & (++x) > 2);    //true and x is incremented
+    System.out.println(9 & 7);                  // 1
+    System.out.println(5 ^ 6);                  // 3 , XOR operation bitwise : OR and not both
 
     // ternary operator
     int c = a < b ? a : b;        // condition ? result if true : result if false;

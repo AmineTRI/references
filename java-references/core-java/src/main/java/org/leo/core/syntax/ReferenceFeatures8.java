@@ -258,7 +258,7 @@ public class ReferenceFeatures8 {
     strings.forEach(System.out::println);
 
     /*
-     * Java 9 comes with a new Date/Time API, the aim is to resolve the issues with the existing util.Date and util.Calender
+     * Java 8 comes with a new Date/Time API, the aim is to resolve the issues with the existing util.Date and util.Calender
      * APIs, these have issues such as being not thread safe, poor design and the absence of direct handling of time zones
      * The new API package is java.time
      */

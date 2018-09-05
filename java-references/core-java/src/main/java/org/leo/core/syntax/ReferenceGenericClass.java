@@ -213,7 +213,7 @@ public class ReferenceGenericClass<T extends Number & Comparable<T>> {
     numbers.add(13);        // but this is ok because an Integer is (or extends) Number
     
     // we naturally can sub type generic types for example if Gen<E> extends BigGen<E> then Gen<String>
-    // extends BigGen<E> like we have ArrayList<String> extends List<String>
+    // extends BigGen<String> like we have ArrayList<String> extends List<String>
     // we can even have another type parameter in the child class going like Gen<E,P> extends BigGen<E>
     // this imply that Gen<String,Integer> and Gen<String,Double> and so on, extends BigGen<String>
     List<String> strings;
