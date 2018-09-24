@@ -329,7 +329,7 @@ object ReferenceObject extends App {
   // we can still use java == as eq in scala and its opposite ne to compare reference equality but this only
   // work for objects that map directly to java objects
   val test1 = result == 1
-  val test2 = result == null
+  //val test2 = result == null
   val test3 = myString == shorty
 
   // scala unified types
@@ -413,7 +413,7 @@ object ReferenceObject extends App {
   val samPoint = Point(1, 2)
   val anotherPoint = Point(2, 1)
 
-  point == theSameUnit    // true
+  point == samPoint       // true
   point == anotherPoint   // false
 
   // pattern matching is a powerful substitute for java's switch statement
@@ -582,7 +582,7 @@ object ReferenceObject extends App {
   // just a word about thi fucking language, it is so messed, so fucked up that you can actually define a val using a
   // block, once executed, the block's return value will be the val's value
   val fuckedUpValue = {println("some fucked up computation, side effects, whatever the fuck else"); 5}
-  val anotherFuckedUpVal = {1 + 3
+  val anotherFuckedUpVal = {
     println("what ?")
     fuckedUpValue + 4
   }                                 // congratulation Mr Odersky, you have created the most complicated, never ending

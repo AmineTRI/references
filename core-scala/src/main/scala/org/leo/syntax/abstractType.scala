@@ -2,7 +2,7 @@ package org.leo.syntax
 
 /**
   * a trait or an abstract class can have an abstract type in scala
-  * In most cases, it is possible to turn abstract type members into type parameters of classes and vice versa
+  * In most cases, it is possible to turn abstract type members into generic type parameters and vice versa
   * but there are cases when this is not possible
   */
 sealed trait AbstractType {

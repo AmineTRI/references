@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
  * User service implementation
  * @author fahdessid
  */
-@Service("userService")
+
 public class UserServiceImpl implements UserService {
 
   @Override
