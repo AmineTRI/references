@@ -1,0 +1,463 @@
+
+WARNING : Before you bitch about it, most of this is a compilation from Internet sources and my personal understanding of the matters
+          This is of course normal because i don't know where the Fuck else i could find the answers...
+          Cheers 
+
+=========================================================================================================================================================================================
+
+1/ What is Apache Hive ?
+
+- Hive is a data-warehouse system (you can say infrastructure, software, engine or package also), that can allow reading, writing and managing data residing in a distributed file system
+  using SQL-like syntax.
+- Hive offers a mechanism to define a structure on a variety of data formats.
+- Hive can access data directly in HDFS, but also on other data storage systems such as Hbase.
+- Hive can execute queries via MapReduce, Tez or even Spark
+- Hive is suited for data warehousing tasks and OLAP
+
+=========================================================================================================================================================================================
+
+2/ What Apache hive is not ?
+
+- Hive is not a fucking database, neither a fucking RDBMS for fuck's sake, it never has been one and never will, it may have the relational database model as
+  an inspiration or interface but that's all it has to do with databases, hive's metastore even uses a database like derby or MySql
+  so if hive were a database why would it need another one ??
+- Hive is not suited for online transaction processing
+
+=========================================================================================================================================================================================
+
+3/ When to use Apache Hive ?
+
+- Hive should be used to analyze data collected during a period of time, meaning that these data should not moving fast (minutes or seconds)
+- Batch mode applications commonly use hive 
+- Your data model schema is not sparse, meaning there should be some structure in it
+- When all we want to do with the data is analytics and not real time queries
+
+=========================================================================================================================================================================================
+
+4/ When not to use Apache Hive ?
+
+- Hive should be avoided when data is streaming-like or is updated/queried very often (minutes/seconds) or real time applications
+- same goes when data model schema is sparse or data is unstructured
+- when needing row level operations
+
+=========================================================================================================================================================================================
+
+5/ What does Apache Hive compares to ?
+
+- Comparing Hive to Hbase seems to me to be somehow inappropriate, even if both are tools designed on top of hadoop to serve the same cause (querying data),
+  hive is an execution engine and not a database while Hbase is a full blown NoSql database, but there still are some points where the two can be compared
+- Hive can be compared more logically to Pig or Spark
+- Bellow we have some hive comparison (with Hbase, Pig and Spark)
+
+- Hive VS Hbase :
+  * Hive is not a database / Hbase is a NoSql database
+  * Hive supports OLAP (batch processing) / Hbase supports OLTP (real time processing)
+  * Hive need strict schema / Hbase supports unstructured or schema free data
+  * Hive support SQL while Hbase does not
+  * Hive database model is RDBMS while Hbase is wide column store
+
+- Hive VS Pig :
+  * HQL is declarative, Pig Latin is procedural
+  * Hive operate in the server side of the cluster while Pig is on the client side
+  * unlike Hive, Pig does not need schemas and can also work on semi structured data
+  * Hive is used for reporting while Pig is for programming
+  
+- Hive VS Spark :
+  * WARNING : this is a personal opinion, it compare SparkSQL with Hive
+  * Hive is data warehouse engine while spark is a framework for distributed computation
+  * Spark supports data sources including hive
+  * spark can be faster due to its lazy evaluation, in memory data management
+  * Spark is more developer friendly
+
+=========================================================================================================================================================================================
+
+6/ How can we use Hive (APIs and clients)
+
+- Before listing the Hive clients we need to understand the difference between an embedded and a standalone server mode:
+  embedded servers mode means that the clients need to have direct access to hive libraries(metastore and driver actually, we will see what is it later) and directly interact with hive, 
+  while standalone servers mode means that the queries are processed by a standalone server such as HiveServer or HiveServer2 (both are based on thrift)
+
+- CLI: command line interface for interactive and batch mode queries (since HiveServer2, hive CLI has been deprecated in favor of Beeline which is a JDBC based hive CLI tool
+  that uses HiveServer2), works only for embedded servers
+- JDBC : java JDBC client, works on both embedded and standalone servers
+- ODBC/Python/PHP : drivers that work only for standalone servers
+- Thrift clients: there are thrift clients for java/Node/C++/Ruby and they all work for both standalone and embedded servers
+- Spark: Using SparkContext (or SparkSession) spark connects directly to hive's metastore, it does not use neither JDBC nor HiveServer but still, if hive is not on the same server we 
+  can still use SparkSql with the JDBC Client
+  
+- These are the basic Hive client, basically, all other clients use one of these to connect to Hive
+
+=========================================================================================================================================================================================
+
+7/ What are the different Hive servers ?
+
+- The correct question is actually what are the different Hive standalone servers, a part from the embedded server mode which allow direct access to hive libraries on the cluster
+  there are two standalone servers (actually two versions of the same thing) : 
+  - HiveServer  : a server based on thrift, this server is also called ThriftServer of HiveServer1
+  - HiveServer2 : also built on top of thrift and is recommended instead the HiveServer1 who have limitations such as the fact that it cannot handle concurrent queries from
+    more than one client for example
+
+=========================================================================================================================================================================================
+
+8/ How does Hive works ?
+
+- Let's start with hive's components architecture : there are 4 stacks in the hive architecture, and from top to bottom there are
+  Hive Clients => Hive Services => Processing Layer => Distributed Storage
+  
+  *  Distributed Storage : mainly HDFS, but Hive can also work on some other distributed storage systems such as Amazon's S3 for example
+  *  Processing Layer : final execution layer of hive queries : MapReduce, Tez or Spark
+  *  Hive Services : here we are going to start bottom to top :
+     - Metastore : the metastore is the were hive stores the metadata of the tables and the databases (locations, partitions, schemas, column types etc...)
+       The metastore is implemented as a database backed store that uses an ORM called DataNecleus
+       The metastore also can be assessed on two ways : embedded meaning directly accessing its underlying database using JDBC or remote as it is also exposed as a thrift service called
+       Metastore service API
+     - Driver : next we have the Driver : it is what responds to queries coming from any client we saw in question 6, the driver itself uses 3 components, on of the is the metastore and
+      		    the 2 others are :  
+       			+ Compiler : the component responsible for semantic analysis of the incoming query, the query is passed from the driver to the compiler and the later parses it and
+                   with the help of the metastore returns an execution plan to the driver in the form of a MapReduce DAG
+                + Execution Engine : also called executor,the driver sends the DAG plan returned from the compiler to this executor so it can pass it to its turn to the processing layer
+                                     it is therefore the manager of the DAG stages in order to resolve their interdependency and executing them on the processing component
+     - Hive servers : here we find the embedded CLI, the Web Interface CLient and the HiveServer we saw in question 5
+  *  Hive Clients : we saw this in question 6
+   
+- now how does all this shit works together, the flow is quite simple actually :
+  + all queries have to go through the driver
+  + HiveServer, Web Interface and the CLI and talks directly to the driver while other clients use the HiveServer to do that
+  + The driver passes the query to the compiler who asks the metastore for metadata and uses them to parse the query and generate a DAG
+  + The DAG is returned to the driver who send it to the Executor
+  + The executor executes the DAG's stages by calling the appropriate component and returns the result to the driver
+  + the driver returns the result to the client
+
+=========================================================================================================================================================================================
+
+9/ what the fuck is HCatalog ?
+
+- The best definition i can give to HCatalog is the following : while hive uses its metastore to store metadata for HDFS data, HCatalog is an interface enabling processing tool
+  other than hive (like Pig, MapReduce or Spark) to access this metastore. thus, it is a way to access HDFS data in a similar way to hive since it is built on it's metastore and
+  uses some components of its DDL (data definition language), besides HCatalog provides a REST api to do this called WebHCat
+
+=========================================================================================================================================================================================
+
+10/ What the features of Hive ?
+
+- HQL language is easy and efficient
+- Partitions and bucketing for performance enhancement
+- can be accessed by varied clients
+- OLAP support
+
+=========================================================================================================================================================================================
+
+11/ What are the limitations of Hive ?
+
+- query latency is generally very high
+- not suitable for real time queries
+- no row level operation
+- sub queries are limited
+- No transaction support
+
+=========================================================================================================================================================================================
+
+12/ Versions log / features for each version
+
+- i cannot be exhaustive while doing this so i will try to put some of the new features and most notable improvements in each version starting from 0.11
+  of course a lot of features are not listed here, i only put the ones i like since it my list so bear with it please
+
+- 0.11  : TRUNCATE support / LEAD/LAG/FIRST/LAST analytical windowing functions / NTILE function / DECIMAL data type / HiveServer2
+- 0.12  : column truncation / CARCHAR data type
+- 0.13  : TEZ support / char data type / more UDFs and possibility to create hive permanent UDF / native PARQUET support / transactions support / Streaming API
+- 0.14  : full ACID support with insert update and delete / Cost Based Optimizer
+- 1.0.0 : no more HiveServer1
+- 1.2.0 : union distinct support
+- 2.0.0 : LLAP / HPLSQL / 
+- 2.2.0 : explain analyze / grouping / DRUID integration
+- 2.3.0 : MERGE statement / intersect, except, minus / materialized views
+- 3.0.0 : more ACID support / Hive Streaming Data Ingest V2 
+
+=========================================================================================================================================================================================
+
+13/ What is Hive ACID support ?
+
+- first of all let's define what ACID is exactly : 
+  ACID stands for Atomicity, Consistency, Isolation and Durability, these are the four traits (requirements) for databases transactions.
+  * Atomicity means that an operation either succeeds completely or fails without any side effect, no partial data are left
+  * Consistency or coherence means that once an operation is completed, its result is visible by all the following operations and the state of the database remains valid
+  * Isolation means that an incomplete operation (failed) does not cause side effects for other operations, this generally means that two transaction cannot be dependent on each other
+    and two transaction executing in the same time should have a result similar to when the two transaction are made one after the other
+  * Durability means that once a transaction is completed, the resultant state of the database should remain preserved even if a system fail occurs afterwards
+  
+- Hive support transactions and ACID starting from 0.13, the following releases made improvements on this feature
+- Hive introduced the transactions and ACID features to resolve the following issues : 
+  * Streaming data to Hive
+  * Row level inserts / updates
+  * Correcting data (deletes, updates, inserts)
+  * Bulk updates (SQL MERGE)
+
+- Of course Hive transactions and ACID support are not fully implemented and have limitations which are :
+  * Since the HQL language is auto-commit, BEGIN, ROLLBACK and COMMIT are not yet supported (maybe in a future release)
+  * Transactions (and therefore ACID) are only allowed on ORC tables
+  * Transactions are by default off
+  * Transactions and ACID support only work on Bucketed tables
+  * Transactions and ACID support does not work on External tables
+  * Accessing ACID tables from non ACID sessions is not allowed
+  * Isolation is only provided as a snapshot level
+  * the Zookeeper and the in-memory lock managers are not compatible with transactions (they probably will never be)
+  * LOAD DATA statement is not allowed with transactional tables
+
+- Since HDFS does not provide a mechanism to support transaction (if a file is being appended to and a read is reading in the same time, there is no guarantee for data consistency for
+  example), so hive transactions write to what we call delta files that are merged to the table at read time.
+  So now, for transaction tables directories (or their partitions directory) we will find a directory for the base files and other directories for each set of delta files
+  
+- All these delta files need to be compacted for performance matters, so now we have what we call a Compactor in hive ACID/Transaction tables
+- Delta files compaction : there are two compaction that runs on the background inside the metastore
+  * Minor Compaction : all delta files on a delta files set are written in a single delta file per bucket
+  * Major Compaction : one or more delta file and the base file for a bucket are written in a single base file per bucket
+  
+- The Compactor have is composed of a few processes, let's see the more important ones : 
+  * Initiator : discovers which table/partition have to be compacted
+  * worker    : a worker handle a single compaction task
+  * cleaner   : deletes the compacted delta files and those who are no longer needed
+  * AcidHouseKeeperService : kills uncompleted transactions that crashed (no heartbeat)
+
+- When upgrading to hive 3, all transaction/ACID tables have to run major compaction on every partition
+
+- To configure transaction and ACID for a given table here are the properties to change at least :
+  * Client Side :
+	hive.support.concurrency – true
+	hive.enforce.bucketing – true (Not required as of Hive 2.0)
+	hive.exec.dynamic.partition.mode – nonstrict
+	hive.txn.manager – org.apache.hadoop.hive.ql.lockmgr.DbTxnManager (lock manager)
+  * Server Side (Metastore) :
+	hive.compactor.initiator.on – true
+	hive	.compactor.worker.threads – number
+  * Table properties :
+    CREATE TABLE table_name (
+  	  id                int,
+  	  name              string
+    )
+    CLUSTERED BY (id) INTO 2 BUCKETS STORED AS ORC
+    TBLPROPERTIES ("transactional"="true",                        -- only this one us mandatory for ACID tables
+    "compactor.mapreduce.map.memory.mb"="2048",     			 	 -- specify compaction map job properties
+    "compactorthreshold.hive.compactor.delta.num.threshold"="4",  -- trigger minor compaction if there are more than 4 delta directories
+    "compactorthreshold.hive.compactor.delta.pct.threshold"="0.5" -- trigger major compaction if the ratio of size of delta files to size of base files is greater than 50%
+    );
+
+=========================================================================================================================================================================================
+
+14/ Cost based optimizer ?
+
+- Cost Based Optimizer or CBO is component in hive powered by Apache Calcite that optimizes and calculates the cost of various plans for a query
+  it is enabled with the hive.cbo.enable property and need the hive.stats.autogather property to be activated, the later allows hive to calculate statistics on the tables and
+  columns (like ANALYZE TABLE) without what CBO cannot function.
+  hive.stats.fetch.column.stats and hive.compute.query.using.stats can also be activated to improve CBO performance
+  Every hive SQL query is parsed then transformed to a tree of physical operator, here the CBO generate various equivalent execution trees using information about the table and
+  the query itself resulting in the same answer (using bushy plans also called bushy trees) then assigns a cost to each execution plan to finally choose the cheapest one that will
+  be executed by the execution engine (Tez, MapReduce or Spark)
+  
+=========================================================================================================================================================================================
+
+15/ does hive support sub queries ?
+
+- Hive does support sub queries in a FROM or a WHERE clause but in a limited way
+- in a FROM it looks like this : 
+SELECT col
+FROM (
+  SELECT a+b AS col
+  FROM t1
+) t2 		-- we could also write AS t2
+
+- in a WHERE clause it can be either an IN/NOT IN form or EXISTS form
+SELECT *
+FROM A
+WHERE A.a IN (SELECT foo FROM B);
+
+SELECT A
+FROM T1
+WHERE EXISTS (SELECT B FROM T2 WHERE T1.X = T2.Y)
+
+- here are the limits of sub queries in hive :
+  * allowed only in FORM clause and WHERE clause with an IN/NOT IN or EXISTS clause
+  * Only supported on the right-hand side of an expression
+  * IN/NOT IN sub queries may only select a single column.
+  * EXISTS/NOT EXISTS must have one or more correlated predicates
+  * References to the parent query are only supported in the WHERE clause of the sub query
+
+=========================================================================================================================================================================================
+
+16/ what is HPL/SQL
+
+- Hive procedural SQL is a tool available since Hive 2.0.0
+- It is a port of the PL/SQL tool that can work with Apache Hive, but also with SparkSQL, Impala as well as any other SQL-on-Hadoop implementation, any NoSQL and any RDBMS
+
+=========================================================================================================================================================================================
+
+17/ What are Hive UDFs ?
+
+- UDF stands for User Defined Function and it is a way to extend hive functionalities by adding functions that we can use in HQL code
+- there are three types of these : 
+  * UDF  : works on a single row and returns a single row as result
+  * UDAF : user defined aggregated functions; works on multiple rows and returns a single row as result
+  * UDTF : user defined tabular functions; works on a single row and returns multiple rows as result
+
+- UDFs can be written in a java project by extending one of the following classes UDF, Generic UDAF, GenericUDTF
+  once the jar compiled we need to do the following operations to use the UDF :
+    * Add the jar to hive classpath or call the hive command ADD JAR jar_path;
+    * call the hive command CREATE TEMPORARY FUNCTION udf_name as 'class.path.ClassName'; or use CREATE FUNCTION myfunc AS 'myclass' USING JAR 'hdfs:///path/to/jar';
+    * call the UDF
+    
+- The UDF can also be registered within a Spark job using SQL query with the CREATE FUNCTION command without specifying the jar if the class is in the same jar as the job
+  then you can directly use the UDF in the same Spark job using another SQL query
+
+=========================================================================================================================================================================================
+
+18/ What is Hive MERGE ?
+
+- MERGE is an ACID feature added to hive since 2.3.0 complementing the existing INSERT, UPDATE, DELETE capabilities
+- needless to say the the tables involved should be transactional
+- MERGE enables up to update, insert or delete data in a single query, here is an example of a merge query :
+
+MERGE INTO db.table1 AS T 
+USING db.table2 AS S
+ON T.ID = S.ID and T.tran_date = S.tran_date
+WHEN MATCHED AND (T.TranValue != S.TranValue AND S.TranValue IS NOT NULL) THEN UPDATE SET TranValue = S.TranValue, last_update_user = 'merge_update'
+WHEN MATCHED AND S.TranValue IS NULL THEN DELETE
+WHEN NOT MATCHED THEN INSERT VALUES (S.ID, S.TranValue, 'merge_insert', S.tran_date);
+
+=========================================================================================================================================================================================
+
+19/ What is Hive Streaming Data Ingest ?
+
+- It is a feature that is available starting from 0.13 and have new version V2 since Hive 3.0.0
+- It is a feature to support writing data in hive from streaming clients such as Flume, Nifi or Storm and it is based on the insert/update ACID operations so it requires the table
+  to be transactional
+- It is used through two sets of Java classes and interfaces, one for connection and transaction management and the other is for IO operations
+- Hive Streaming rely on transactional tables compaction and latency normally exists between streaming writes and client reads 
+
+=========================================================================================================================================================================================
+
+20/ What is the Hive partitioning ?
+
+- Hive partitioning : it is quite the same as partitioning in any other RDBMS, a table can be partitioned by one or more columns, this will affect the way the tables files are stored in
+  HDFS, all the rows sharing the same value for a given partition column will be stored in the same folder named comlumn_name=value
+
+- We create a partitioned hive table using this syntax :
+CREATE TABLE salesdata ( 
+	salesperson_id int,
+   	product_id int
+)
+PARTITIONED BY (date_of_sale string)
+
+- Partitioning columns should be the last columns in the table and should be declared separately from the table columns
+
+- There are two types of partitioning in Hive :
+  * Static partitioning :
+    + partitions need to be declared when inserting data like
+      INSERT INTO TABLE salesdata PARTITION (date_of_sale=’10-27-2017’) SELECT * FROM anothertable WHERE date_of_sale=’10-27-2017’;
+    + usually needed when inserting big files in a partitioned table
+    + It takes less time to load data
+    + Static partitions can be altered
+    + It is also called striict mode and is the default partitioning mode
+    + Can be used on external and managed tables
+    + where clause is needed to use limit
+  * Dynamic partitioning :
+    + basically, it is the fact that letting  hive create the partitions and writes rows to the appropriate partitions 
+    + Used when using single inserts
+    + takes more time to load data
+    + limit does not need where clause
+    + we cannot alter dynamic partitions
+    + works also on external and managed tables
+    + it is called non strict partitioning and need set hive.exec.dynamic.partition.mode=nonstrict;
+    + It is not by default in order to prevent large number of partitions, the default number is 100 per mapper or reducer but can be changed through hive.exec.max.dynamic.partitions.pernode
+    + we insert like this : INSERT INTO TABLE salesdata PARTITION (date_of_sale) select salesperson_id,product_id,date_of_sale from salesdata_source ;
+      where date_of_sale should be the last column in the second select clause
+    + we use this when Loading data from an existing non-partitioned table orwWhen we don't know all the values of the partitions before hand and therefore 
+
+- For external table we add need to create the sub directories then use the MSCK REPARI TABLE command or the  ALTER TABLE table ADD PARTITION command
+- partitioning distributes the execution load horizontally, and queries with criteria based on partition columns run faster
+
+=========================================================================================================================================================================================
+
+21/ What is Hive Bucketing ?
+
+- Bucketing is a technique that makes it possible to decompose hive data into more manageable parts, this can already be done using partitions but they are only efficient when :
+  * the number of partitions is limited
+  * partitions are equally sized
+- Bucketing is based on hashing function of the bucketed column (depending on the column data type) and a mod by the total number of buckets, this creates almost equal sized buckets
+- All the records with the same bucketed column goes to the same bucket which is a file with an incremental number
+- Bucketing can be done with or without partitioning
+- bucketing improve overall query performance plus enhancement on map side joins and facilitates random sampling
+- We create bucketed table using the CLUSTERED BY clause :
+CREATE TABLE user_info_bucketed (
+	user_id		BIGINT,
+	firstname 	STRING,
+	lastname 	STRING
+)
+COMMENT 'A bucketed copy of user_info'
+PARTITIONED BY (ds STRING)
+CLUSTERED BY (user_id) INTO 256 BUCKETS;
+
+- set hive.enforce.bucketing = true; should be used when using buckets, this sets the number of reducers should be equal to the number of buckets
+
+=========================================================================================================================================================================================
+
+22/ What is the difference between partitioning and bucketing ?
+
+- partitions works well with low cardinality columns whereas bucketing works better with high cardinality columns
+- partitions uses directories while bucketing uses files
+- partitions helps when combined with WHERE clauses and bucketing help improve sampling and map side joins and sorts/groups also
+
+=========================================================================================================================================================================================
+
+23/ What is Hive LLAP ?
+
+- LLAP stands for Live Long And Process, it have been added since hive 2.0.0
+- LLAP, once activated, does not replace hive existing model but rather enhances and improves it, actually execution of queries with LLAP is the same as without but instead of running
+  them inside yarn containers, they run inside what we call LLAP daemons that replace the direct interactions with HDFS datanodes
+- What changes with LLAP is only when TEZ sends the tasks to be executed, rather than pushing them to yarn containers, TEZ AM pushes fragments of query to LLAP daemons, then LLAP IO and
+  cache processes are used to read data instead of the usual RecordReader
+- LLAP queries does not start new yarn containers but rather use the LLAP daemon which run as shared yarn applications, so this speeds up the latency we find in normal queries for startup
+  and the name also comes from this because the LLAP daemons re long living and not started for each query
+- LLAP is a hybrid mode, so both LLAP daemons and normal hive execution coexist
+- LLAP is not an execution engine (TEZ is), TEZ uses LLAP, MapReduce cannot, other framework such as PIG can also use LLAP daemons
+- With LLAP some function like caching, pre-fetching, datanode data access and some small short queries are moved entirely to the LLAP daemons
+- One LLAP daemon can execute in parallel multiple fragments of different queries and sessions
+- the caching we were talking about in LLAP daemons concern metadata of the input files and also the data itself
+- LLAP daemons are still under YARN control and management
+
+=========================================================================================================================================================================================
+
+24/ Some common hive interview Questions / Answers
+
+- I'l try to answer some hive interview questions that you may be asked, the questions here are for subjects or details not answered in the previous questions
+- Also, syntax related questions will not be answered here but rather demonstrated in a .hql file in the java resources directory fo the same project
+
+Q - where does the data get stored in HDFS for a Hive managed table
+A - in hive.metastore.warehouse.dir property value, which is /user/hive/warehouse/ by default, we can also change it (other than changing the previous property) by specifying a LOCATION
+    clause when creating the table
+
+Q - What are the different deployment modes for the metastore:
+A - + Embedded Mode : the default one, derby database that allows one single session and runs on the same JVM as hive service along with the metastore service
+    + Local Mode : the metastore service runs on the same JVM as the hive service but the database is in a different process or even a different host, multiple users can have a session
+      at the same time, the embedded metastore service uses JDBC to call the metastore database
+    + Remote Mode : the metastore service runs on its own JVM and any other service who wants to communicate with it can do it via Thrift Network API (CLI, HiveServer2, HCatalog ...),
+      we can even have more metastores in this mode to offer high availability
+      
+Q - What is the difference between external tables and managed ones ?
+A - In case of managed table, If one drops a managed table, the metadata information along with the table data is deleted from the Hive warehouse directory.
+	On the contrary, in case of an external table, Hive just deletes the metadata information regarding the table and leaves the table data present in HDFS untouched.
+	
+Q - When should we use SORT BY instead of ORDER BY?
+A - We should use SORT BY instead of ORDER BY when we have to sort huge datasets because SORT BY clause sorts the data using multiple reducers whereas ORDER BY sorts all of the data
+    together using a single reducer. Therefore, using ORDER BY against a large number of inputs will take a lot of time to execute.
+    
+Q - What is indexing in Hive ?
+A - indexes is a technique know to almost all RDBMS, it creates and index upon a column or a set of columns to speed up queries on these columns if we want to query only those columns
+    and not the entire records
+    they are created using the command CREATE INDEX index_name ON TABLE table_name (columns,....) AS 'org.apache.hadoop.hive.ql.index.compact.CompactIndexHandler' WITH DEFERRED REBUILD;
+    We could also use the Bitmap indexing instead of the CompactIndexing but i personally don't give a fuck about this
+    Indexes are stored in separate hive tables and we can have more than on index for a given table 
+    It seem that using indexes is not recommended, instead we could use ORC format that enables the same functionality as an embedded feature
+
+Q - What is a View in Hive ?
+A - Like views in classic RDBMS, a view is a result of a query on a table, we define it using the command 
+    CREATE VIEW [IF NOT EXISTS] view_name [(column_names [COMMENT column_comment]…) ] [COMMENT table_comment] AS SELECT …
+    Hive views are not materialized, they are like a virtual table meaning data will not be stored in the view but we still can query it like we query a table

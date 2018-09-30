@@ -17,6 +17,7 @@
 		<module>spring-boot</module>
 		<module>core-java</module>
 		<module>design-patterns</module>
+		<module>big-data</module>
 	</modules>
 
 	<dependencies>

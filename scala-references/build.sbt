@@ -1,4 +1,4 @@
-name := "core-scala"
+name := "scala-references"
 
 version := "0.1"
 
@@ -10,5 +10,3 @@ libraryDependencies += "org.scalamock" %% "scalamock" % "4.1.0" % "test"
 
 addSbtPlugin("com.artima.supersafe" % "sbtplugin" % "1.1.3")      // this is recommended to flag errors in ScalaTest
                                                                   // at compile time
-
-
