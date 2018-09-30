@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -232,7 +233,7 @@ public class ReferenceFeatures8 {
      * here the sameOrNot returns the boolean needed by the SAM's abstract method but does not take two instances
      * of SomeClass like expected in the SAM's abstract method
      * instead the call to the someOrNot is like instance1.sameOrNot(instance2)
-     * then instance1 and instance two will play the role of the expected 2 arguments of the SAM's abstract method (tricky !!)
+     * then instance1 and instance2 will play the role of the expected 2 arguments of the SAM's abstract method (tricky !!)
      */
     YetAnotherFunctionable f10 = SomeClass::sameOrNot;
 
@@ -316,6 +317,9 @@ public class ReferenceFeatures8 {
      * The elements of a stream are only visited once during the life of a stream. Like an Iterator, 
      * a new stream must be generated to revisit the same elements of the source
      * You can use stream to filter, collect, print, and convert from one data structure to other etc ...
+     * 
+     * Stream are always serial (sequential) but we can be make them parallel using parallelStream method instead of stream, for collections, this should be used on synchronized collections or
+     * non blocking ones
      */
 
     // there are a lot (really too many) methods that can be invoked on a stream, here we will try to demonstrate some of them
@@ -371,43 +375,120 @@ public class ReferenceFeatures8 {
     Set<Float> productPriceList = productsList.stream()  
         .map(product -> product.price)  
         .collect(Collectors.toSet());                 // collect it as Set(removes duplicate elements)
-    
+
     // create a map from a list
     Map<Integer, Product> productMapById = productsList.stream()
         .collect(Collectors.toMap(p -> p.id, p -> p));  // collect as a map
-    
+
     // we have seen in the previous examples the use of Collectors class, this class helps creating Collector
     // objects that are used to accumulate elements into collections, summarize elements according to some criteria,
     // grouping or partitioning
     // the collectors class have a lot (really too many) of functions
-    
+
     // Collector grouping example
     Map<Integer, List<Product>> mapById = productsList.stream().
         collect(Collectors.groupingBy(p -> p.id));
     Map<String, List<Product>> mapByName = productsList.stream()
         .collect(Collectors.groupingBy(Product::getName));
-    
+
     // Collector partitioning example
     // partitioning is a special case of grouping where we group on the two values of a boolean function result
     Map<Boolean, List<Product>> partitionByPrice = productsList.stream()
         .collect(Collectors.partitioningBy(p -> p.getPrice() >= 3000));       // take a predicate
+
+    /*
+     * The operation we apply on streams are called aggregation operations and a sequence of such operations are called pipelines
+     * There are intermediate operations (we can call zero or more of them in a pipeline), they return a stream (like filter or map for instance)
+     * and there are terminal operations that return non stream result such as a primitive type, a collection or nothing like forEach
+     * 
+     * The intermediate operations are lazy (not eager), they do not start until a terminal operation is called.
+     */
+
+    // pipeline example on a collection
+    List<Person> persons = new ArrayList<>();
+
+    double average = persons
+        .stream()
+        .filter(p -> p.getGender() == Person.Sex.MALE)
+        .mapToInt(Person::getAge)
+        .average()
+        .getAsDouble();
+
+    /*
+     * Terminal operations are also called reduction operations or reducers, they can :
+     * return a single value like sum, min, max, average, count ...
+     * return a collection : collect
+     * general purpose reducer : reduce
+     * return nothing, just side effects like forEach ...
+     */
+
+    /*
+     * General purpose reducers : the reduce method takes two arguments :
+     * - identity : the initial value and also the default value to return if the input stream is empty, in the following example it is a 0
+     * - accumulator : a function that takes two arguments : a partial result of the process and the next element in the stream, it always returns a new
+     *                 value each time it process an element of the stream, so suppose we want to create a collection as final result, this mean that
+     *                 the reduce accumulator will create a new collection in each iteration of the stream's elements, which sucks like shit, that's why
+     *                 we use collect to do that
+     */
+    Integer sum = persons
+        .stream()
+        .filter(p -> p.getGender() == Person.Sex.MALE)
+        .mapToInt(Person::getAge)
+        .reduce(0, (a, b) -> a +b);
+
+    /*
+     * The collect terminal aggregation operations, unlike the reduce operation, does not create a new value when it processes an element of the stream
+     * but rather mutates or modifies an existing value
+     * there are two ways to call the collect method, either by passing 3 arguments, or by calling a Collector (they are both tested just bellow this comment)
+     */
+
+    /*
+     * Suppose we want to calculate the average of age in male population, the 3 arguments collect takes :
+     * 1) a supplier : a factory function that can provide instances of the wanted final result container
+     * 2) an accumulator : modifies the result container using the actual stream element
+     * 3) a combiner : merges two instances of the result container
+     * 
+     * Since for average calculation needs to store two values (count and sum) we cannot use Integer for example as result container
+     * We will use a custom class called Averager and then use method reference to implement the 3 arguments
+     */
+    Averager av = persons
+    .stream()
+    .filter(p -> p.getGender() == Person.Sex.MALE)
+    .mapToInt(Person::getAge)
+    .collect(Averager::new, Averager::accept, Averager::combine);
+
+    // result is here
+    System.out.println(av.average());
     
+    /*
+     * collect other way is by passing a Collector, this is well suited for collections
+     * We use the Collectors class with its factory methods to return different collectors
+     * Besides from returning collections, the Collectors class have other interesting methods like grouppingBy, reducingBy
+     * joining, counting, averaging, mapping ....
+     */
+    Map<Person.Sex, Double> averageAgeByGender = persons
+        .stream()
+        .collect(
+            Collectors.groupingBy(
+                Person::getGender,                      
+                Collectors.averagingInt(Person::getAge)));
+
     // Arrays parallel sorting is a new features in java 8, and of course there are a lot of methods 
     int[] integers = {5,8,1,0,6,9};
-    
+
     System.out.println(Arrays.stream(integers).mapToObj(i -> String.valueOf(i)).reduce((s,a) -> s.concat(a)).get());
-    
+
     // Sorting array elements in parallel  
     Arrays.parallelSort(integers);  
     System.out.println(Arrays.stream(integers).mapToObj(i -> String.valueOf(i)).reduce((s,a) -> s.concat(a)).get());
-    
+
     int[] ints = {5,8,1,0,6,9, 30, -4};
     System.out.println(Arrays.stream(ints).mapToObj(i -> String.valueOf(i)).reduce((s,a) -> s.concat(a)).get());
 
     // sorting array until 4th element
     Arrays.parallelSort(ints, 0, 4);  
     System.out.println(Arrays.stream(ints).mapToObj(i -> String.valueOf(i)).reduce((s,a) -> s.concat(a)).get());
-    
+
     // Type Annotations and Pluggable Type Systems : annotations can now be used other than on declarations
     // we can use them with new implements throws and cats for example
     @NonNull String nonNullString = "value";
@@ -418,5 +499,53 @@ public class ReferenceFeatures8 {
     System.out.println("RUNNING");
     ReferenceFeatures8 features = new ReferenceFeatures8();
     features.test();
+  }
+
+  /**
+   * A Person class for tests
+   */
+  public static class Person {
+
+    private String name;
+    private int age;
+    private Sex gender;
+
+    public enum Sex {
+      MALE,
+      FEMALE
+    }
+
+    public String getName() {
+      return this.name;
+    }
+
+    public int getAge() {
+      return this.getAge();
+    }
+
+    public Sex getGender() {
+      return this.gender;
+    }
+  }
+
+  /**
+   * Custom Result container for collect
+   */
+  class Averager implements IntConsumer {
+
+    private int total = 0;
+    private int count = 0;
+
+    public double average() {
+      return count > 0 ? ((double) total)/count : 0;
+    }
+
+    public void accept(int i) { 
+      total += i; count++; 
+    }
+    public void combine(Averager other) {
+      total += other.total;
+      count += other.count;
+    }
   }
 }
